@@ -1,0 +1,4 @@
+# Miljøvariabler / hemmeligheter
+.env
+.env.*
+!.env.example
