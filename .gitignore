@@ -2,3 +2,6 @@
 .env
 .env.*
 !.env.example
+
+# Lokal vfac CLI-lesetilgang – aldri commit
+.env.vfac-cli-read-access

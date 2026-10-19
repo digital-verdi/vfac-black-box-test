@@ -2,6 +2,46 @@
 
 > Operational handoff for PdAC changes. This is a reusable record, **not evidence of a current deployment**. Fill in the current Project, Resource identities, manifest paths, Operations, workflow runs and verification results from live state before acting. Placeholder values are not deployable configuration.
 
+## Current status — bootstrap, no deployment
+
+- Objective: bootstrap this repository for Varde Flyt PdAC work. No deployment or
+  change has been requested; the deployment playbook is reference only.
+- Project: `prj_01m4qqme1ve00a5e8swvf4dghc` — name `vfac-black-box`, status
+  `ACTIVE` — selected in the local `vfac` context (from the repository's
+  `VFAC_PROJECT_ID`), and verified live with `vfac project show`.
+- Resources deployed: **none**. `vfac get product-instances --output json`
+  returns an empty list, so this Project holds no Product Instances and there are
+  no Resource or Operation ids to find.
+- Session credential: a read-only (OBSERVATION) Context Gate, read from the
+  gitignored `.env.vfac-cli-read-access`. It discovers, validates, plans and
+  inspects; it **cannot apply and cannot run a lifecycle command** — that refusal
+  is the grant working, not a fault.
+- Manifest and pipeline files touched: none. No `resources/` manifest and no CI
+  workflow (`.github/workflows/`, GitLab, Jenkins, …) is committed here.
+- CI/CD: the repository is on GitHub; no workflow is committed (`gh workflow
+  list` is empty), so there is **no runnable deployment pipeline yet**, even
+  though the GitHub repository already carries Actions variables and secrets
+  (below). A GitHub remote does not prove CI/CD is wired up.
+- Verified: `vfac 0.18.3` (the current release) is installed; `vfac doctor`,
+  `vfac guide` and `vfac whoami` succeed with the read gate against the
+  organization's endpoint; a Varde Flyt MCP server is connected and answers.
+- Where ids, configuration and secrets live: the endpoint and read gate in the
+  gitignored `.env.vfac-cli-read-access`; **GitHub Actions repository variables**
+  — `VFAC_ENDPOINT`, `VFAC_CREDENTIAL_ID`, `VFAC_PROJECT_ID`, `ENTRA_APP_ID`,
+  `ENTRA_TENANT_ID`, `INITIAL_EMAIL_ADDRESS`; **GitHub Actions repository
+  secrets** — `VFAC_CREDENTIAL_SECRET`, `ENTRA_APP_SECRET`,
+  `INITIAL_EMAIL_SECRET`, `MISTRAL_API_KEY`, `OPENROUTER_API`, `TAVILY_API_KEY`.
+  Names only — no secret value was read. The Gate a deployment workflow would use
+  (`VFAC_CREDENTIAL_ID` + `VFAC_CREDENTIAL_SECRET`) is a Project-administrator
+  gate, **separate from this session's read gate**.
+- Remains before a deployment could run: a write-capable (Project-administrator)
+  Gate for whoever deploys; at least one committed manifest; a CI/CD workflow that
+  runs the same `validate → plan → apply` path over it; and the Product secret
+  values kept only in GitHub Actions repository secrets.
+- Next safe action: wait for a task that names the deployment. This read gate can
+  read the catalogue, `validate` and `plan`, but it cannot `apply` or run
+  lifecycle; deploy through the repository's separate write gate.
+
 ## Current objective
 
 Record the current deployment or replacement objective: Product, version, profile,

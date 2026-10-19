@@ -1,5 +1,18 @@
 # PDAC lessons learned
 
+- The CLI read gate for this Project lives in the gitignored
+  `.env.vfac-cli-read-access` (`VFAC_ENDPOINT`, `VFAC_CREDENTIAL_ID`,
+  `VFAC_CREDENTIAL_SECRET`). Source it before `vfac doctor`/`guide`/`whoami`: the
+  file's presence does not mean a shell has exported the variables, and without
+  them every command is refused as "No credential". The gate is read-only in the
+  Project (OBSERVATION): it can discover, validate, plan and inspect, and refuses
+  every apply and lifecycle command — that refusal is what was granted, not a
+  fault. The write gate a deployment uses is a **separate** Project-administrator
+  gate kept in GitHub Actions repository secrets.
+- The global CLI install needs `sudo` in this image:
+  `/usr/local/lib/node_modules` is not writable by the agent user, so a plain
+  `npm install -g @varde-flyt/vfac` fails with `EACCES`.
+
 - Kreo 2.1.3 plans an SSO/Rute deployment without Product secret inputs when its
   AI credential references Rute's serviceApiKey. Its Identity sign-in binding
   is varde-identity, not human-identity. Only configure model groups the
