@@ -2,11 +2,11 @@
 
 ## What this repo is
 
-Docs-only repository for **Varde Flyt PdAC** (Product-as-Code). There is no
-source code, package manifest, build, tests, lint, CI, `resources/` tree, or
-`.github/workflows/` here — even though the docs reference those paths and a
-`vfac` CLI. Do not invent or run build/test tooling, and do not create the
-missing directories unless a task explicitly asks for them.
+Docs-only repository for **Varde Flyt**, demonstrating **Product Deployment as
+Code** (PdAC). There is no source code, package manifest, build, tests, lint, CI,
+`resources/` tree, or `.github/workflows/` here — even though the docs reference
+those paths and a `vfac` CLI. Do not invent or run build/test tooling, and do not
+create the missing directories unless a task explicitly asks for them.
 
 ## Layout
 
@@ -16,8 +16,11 @@ missing directories unless a task explicitly asks for them.
 - `docs/pdac/lessons-learned.md` — accumulated Product-specific gotchas
   (Rute/Kode/Scene/Signal/Identity/Kreo). Read before any Varde Flyt work;
   append new findings here.
+- `docs/pdac/cli-quickstart.md` — the operator path: install, sign-in,
+  `validate`/`plan`/`apply`, and how secrets are passed.
 - `docs/standards/*` — naming guidance (see below).
-- `README.md` is intentionally one line; leave it alone unless asked.
+- `README.md` — the public entry page for the demo. Keep it short and accurate;
+  it is not the place for operator detail.
 
 ## Varde Flyt PdAC workflow
 
