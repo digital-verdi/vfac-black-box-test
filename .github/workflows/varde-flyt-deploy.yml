@@ -1,0 +1,89 @@
+name: Deploy Varde Flyt resources
+
+# The permanent, declarative pipeline. It applies the committed manifest on every
+# push to main and never touches Entra, never creates an app and never rotates a
+# secret: an ordinary push carries no product secret, so the platform keeps the
+# secrets the resource already holds (see docs/pdac/lessons-learned.md).
+#
+#   VFAC_ENDPOINT / VFAC_CREDENTIAL_ID / VFAC_PROJECT_ID  repo variables
+#   VFAC_CREDENTIAL_SECRET                                repo secret (step-scoped)
+#
+# The manifest is a template: tenant-specific, non-secret values are rendered
+# from the repo configuration at run time (ADMIN_EMAIL, ENTRA_TENANT_ID,
+# ENTRA_CLIENT_ID).
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: varde-flyt-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    env:
+      VFAC_ENDPOINT: ${{ vars.VFAC_ENDPOINT }}
+      VFAC_CREDENTIAL_ID: ${{ vars.VFAC_CREDENTIAL_ID }}
+      VFAC_PROJECT_ID: ${{ vars.VFAC_PROJECT_ID }}
+      ADMIN_EMAIL: ${{ vars.INITIAL_EMAIL_ADDRESS }}
+      ENTRA_TENANT_ID: ${{ vars.ENTRA_TENANT_ID }}
+      ENTRA_CLIENT_ID: ${{ vars.TARGET_ENTRA_APP_ID }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install vfac
+        run: npm install --global @varde-flyt/vfac
+
+      - name: Render manifest
+        run: bash .github/scripts/render-manifest.sh resources/identity-sso.yaml /tmp/resource.yaml true
+
+      # The write Gate secret is scoped to the steps that authenticate, and only
+      # to them — never to the job.
+      - name: validate -> plan -> apply
+        env:
+          VFAC_CREDENTIAL_SECRET: ${{ secrets.VFAC_CREDENTIAL_SECRET }}
+        run: |
+          set -euo pipefail
+          vfac doctor
+          vfac context set --project "$VFAC_PROJECT_ID"
+          vfac validate -f /tmp/resource.yaml
+
+          PLAN=$(vfac plan -f /tmp/resource.yaml --output json)
+          echo "$PLAN" | jq '{action, health, secretsToWrite, requiredSecrets}'
+          ACTION=$(jq -r '.action' <<<"$PLAN")
+          case "$ACTION" in
+            CREATE|UPDATE|NO_CHANGE) ;;
+            *) echo "::error::plan action '${ACTION}' is not applied by an ordinary push"; exit 1 ;;
+          esac
+          if [ "$(jq -c '.secretsToWrite' <<<"$PLAN")" != "[]" ]; then
+            echo "::error::an ordinary push must not write a product secret (secretsToWrite=$(jq -c '.secretsToWrite' <<<"$PLAN"))"
+            exit 1
+          fi
+
+          vfac apply -f /tmp/resource.yaml --wait
+
+      - name: Verify the resource
+        env:
+          VFAC_CREDENTIAL_SECRET: ${{ secrets.VFAC_CREDENTIAL_SECRET }}
+        run: |
+          set -euo pipefail
+          vfac context set --project "$VFAC_PROJECT_ID"
+          ID=$(vfac get product-instances --output json \
+            | jq -r '.productInstances[] | select(.manifestKey=="box-shared-sso-prod") | .productInstanceId' | head -1)
+          [ -n "$ID" ] || { echo "::error::resource 'box-shared-sso-prod' not found"; exit 1; }
+          vfac get product-instance "$ID" --output json \
+            | jq '{id:"'"$ID"'", status:.resource.status, conditions:[.resource.conditions[]|{key,state,freshness}]}'

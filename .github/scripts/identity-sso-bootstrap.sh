@@ -49,22 +49,7 @@ vfac_login() {
 
 # Render the committed template, optionally dropping the `entra:` group.
 render_manifest() { # $1=outfile $2=with_entra(true|false)
-  local out="$1" with="$2"
-  python3 - "$MANIFEST_TEMPLATE" "$out" "$with" <<'PY'
-import os, sys
-tpl, out, with_entra = sys.argv[1], sys.argv[2], sys.argv[3] == "true"
-lines = open(tpl, encoding="utf-8").read().splitlines(keepends=True)
-docs, skip = [], False
-for ln in lines:
-    if "# vfac-bootstrap:entra:begin" in ln: skip = True; continue
-    if "# vfac-bootstrap:entra:end" in ln: skip = False; continue
-    if skip and not with_entra: continue
-    docs.append(ln)
-text = "".join(docs)
-for key in ("ADMIN_EMAIL", "ENTRA_TENANT_ID", "ENTRA_CLIENT_ID"):
-    text = text.replace("${%s}" % key, os.environ.get(key, ""))
-open(out, "w", encoding="utf-8").write(text)
-PY
+  bash .github/scripts/render-manifest.sh "$MANIFEST_TEMPLATE" "$1" "$2"
 }
 
 plan_json() { local f="$1"; shift; vfac plan -f "$f" "$@" --output json; }
@@ -84,7 +69,7 @@ find_instance_id() {
   vfac get product-instances --output json \
     | jq -r --arg k "$RESOURCE_KEY" '
         (.productInstances // [])[]
-        | select((.metadata.key // .key // .name) == $k)
+        | select((.manifestKey // .metadata.key // .key // .displayName) == $k)
         | (.productInstanceId // .id // .resourceId) ' 2>/dev/null | head -1
 }
 
