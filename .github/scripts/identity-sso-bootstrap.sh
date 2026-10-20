@@ -159,7 +159,10 @@ PROV_SP_ID=$(jq -r '.value[0].id // empty' <<<"$(gget "/servicePrincipals" \
 PROV_ROLES=$(jq -r '.value[].appRoleId' <<<"$(gget "/servicePrincipals/${PROV_SP_ID}/appRoleAssignments" --data-urlencode "\$select=appRoleId")")
 
 missing=()
-for perm in Application.ReadWrite.All AppRoleAssignment.ReadWrite.All DelegatedPermissionGrant.ReadWrite.All Application.Read.All; do
+# Application.ReadWrite.All also grants the reads (list/read applications and
+# service principals), so it is not required separately; the other two are what
+# Application.ReadWrite.All alone does NOT give.
+for perm in Application.ReadWrite.All AppRoleAssignment.ReadWrite.All DelegatedPermissionGrant.ReadWrite.All; do
   id=$(graph_role_id "$perm")
   [ -n "$id" ] || fail "Graph application permission '${perm}' not found on the Microsoft Graph service principal"
   grep -qx "$id" <<<"$PROV_ROLES" || missing+=("$perm")
