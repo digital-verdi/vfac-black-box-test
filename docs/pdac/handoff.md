@@ -2,44 +2,44 @@
 
 > Operational handoff for PdAC changes. This is a reusable record, **not evidence of a current deployment**. Fill in the current Project, Resource identities, manifest paths, Operations, workflow runs and verification results from live state before acting. Placeholder values are not deployable configuration.
 
-## Current status — three Product Instances live via PdAC
+## Current status — Identity live; Rute and Frende torn down (demo reset)
 
-- Objective: run Identity — SSO, Rute — AI Gateway and Frende — AI Chat in
-  Project `prj_01m4qqme1ve00a5e8swvf4dghc`, with Frende signing in through
-  Identity and reaching Rute purely by Resource-output references.
-- Deployed resources (all **ACTIVE**):
-  - Identity — SSO `pri_01m5crw6b7e008b4jz1d67xbkk` (`box-shared-sso-prod`,
-    `identity-sso` 5.0.0) — `signIn`, `directoryAccess`, `logForwarding`
-    READY/FRESH.
-  - Rute — AI Gateway `pri_01m5d4phq5e0084pp43kcfg1z5` (`box-shared-gw-prod`,
-    `rute-ai-gateway` 6.3.0, `developer`) — `routingConfiguration` READY/FRESH.
-  - Frende — AI Chat `pri_01m5d50wc9e009st89p1kb56cv` (`box-shared-chat-prod`,
-    `frende-ai-chat` 4.0.0, `developer`) — `modelEndpoint` and `signInLockout`
-    READY/FRESH. Its three prepared model choices carry the Varde mark
-    (`iconURL: /assets/logo.svg`) instead of the default generic icon.
+- Identity — SSO `pri_01m5crw6b7e008b4jz1d67xbkk` (`box-shared-sso-prod`,
+  `identity-sso` 5.0.0) is **live** — `signIn`, `directoryAccess`, `logForwarding`
+  READY/FRESH — and was guarded before and after the teardown.
+- Rute — AI Gateway (`box-shared-gw-prod`, 6.3.0, `developer`) and Frende — AI
+  Chat (`box-shared-chat-prod`, 4.0.0, `developer`) were **deleted** with
+  `varde-flyt-teardown.yml` (run `39471730566`): Frende first, then Rute; both
+  delete Operations `succeeded`; Identity stayed ACTIVE throughout.
+- Manifests, the permanent pipeline and every script are **unchanged** — no
+  manifest and no `RESOURCES` entry was edited. Recreate with two dispatches, see
+  "Teardown / reset for the demo"; Rute and Frende then get **new Resource IDs**.
+- While they are absent, an ordinary push runs the permanent pipeline and **fails
+  controlled**: it refuses `CREATE` ("first creation is a bootstrap"), so a
+  deleted resource is never recreated empty. That is intended demo behaviour.
 - Manifests and pipeline: `resources/{identity-sso,rute-ai-gateway,frende-ai-chat}.yaml`
   (templates); `.github/workflows/varde-flyt-deploy.yml` (permanent, ordered,
-  secret-less; push to `main` and dispatch); `.github/scripts/`
-  (`render-manifest.sh`, `lib.sh`, `deploy.sh`, and the maintenance tools
-  `identity-sso-bootstrap.sh` / `app-bootstrap.sh`). No temporary bootstrap
-  workflow remains.
+  secret-less) with companions `varde-flyt-app-bootstrap.yml` (manual; recreate
+  Rute + Frende) and `varde-flyt-teardown.yml` (manual, `confirm: DELETE`);
+  `.github/scripts/` (`render-manifest.sh`, `lib.sh`, `deploy.sh`,
+  `identity-sso-bootstrap.sh`, `app-bootstrap.sh`, `teardown.sh`).
 - Session credential: read-only (OBSERVATION) Gate in
-  `.env.vfac-cli-read-access` — `validate`/`plan`/inspect only. The pipeline
-  deploys with the **separate** write Gate (`VFAC_CREDENTIAL_ID` +
-  `VFAC_CREDENTIAL_SECRET`, identity `b-bx-github-actions`).
-- Integrations: Rute and Frende bind `human-identity` + `human-directory` to
-  `box-shared-sso-prod`; Frende's single endpoint reads Rute's `serviceUrl`, and
-  its `modelProviderApiKey` reads Rute's `serviceApiKey` — both by
-  `valueFrom.resourceOutput`, nothing copied by hand and no API key created.
-- Verified: the permanent workflow ran green for all three — plan `NO_CHANGE`,
-  `health` ACTIVE/converged, `secretsToWrite: []`, with the Identity guard clean
-  before and after. An ordinary push therefore keeps every stored secret.
-- Remains (human): a real interactive Entra sign-in to the Rute console and to
-  Frende, the first-administrator role, and the browser-level functional checks.
-  A direct Rute `/v1/*` call from an external client is a separate test that
-  needs a console-issued application key — it is **not** part of this integration.
-- Next safe action: perform the interactive checks, then enable the directory
-  administration handover if desired.
+  `.env.vfac-cli-read-access` — `validate`/`plan`/inspect only. The workflows use
+  the **separate** write Gate (`VFAC_CREDENTIAL_ID` + `VFAC_CREDENTIAL_SECRET`,
+  identity `b-bx-github-actions`).
+- Integrations (from the last live deployment): Rute and Frende bound
+  `human-identity` + `human-directory` to `box-shared-sso-prod`; Frende's single
+  endpoint read Rute's `serviceUrl`, and its `modelProviderApiKey` read Rute's
+  `serviceApiKey` — both by `valueFrom.resourceOutput`, nothing copied by hand
+  and no API key created.
+- Verified before teardown: the permanent pipeline ran green for all three — plan
+  `NO_CHANGE`, `health` ACTIVE/converged, `secretsToWrite: []`.
+- Remains (human, after the next recreate): interactive Entra sign-in to the Rute
+  console and to Frende, the first-administrator role, and the browser-level
+  functional checks. A direct Rute `/v1/*` call is a separate test needing a
+  console-issued application key — not part of this integration.
+- Next safe action: to bring the demo back, run the bootstrap workflow, then the
+  deploy workflow (see "Teardown / reset for the demo").
 
 ## Current objective
 
