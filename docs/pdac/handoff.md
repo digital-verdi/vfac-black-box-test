@@ -15,7 +15,8 @@
     `rute-ai-gateway` 6.3.0, `developer`) — `routingConfiguration` READY/FRESH.
   - Frende — AI Chat `pri_01m5d50wc9e009st89p1kb56cv` (`box-shared-chat-prod`,
     `frende-ai-chat` 4.0.0, `developer`) — `modelEndpoint` and `signInLockout`
-    READY/FRESH.
+    READY/FRESH. Its three prepared model choices carry the Varde mark
+    (`iconURL: /assets/logo.svg`) instead of the default generic icon.
 - Manifests and pipeline: `resources/{identity-sso,rute-ai-gateway,frende-ai-chat}.yaml`
   (templates); `.github/workflows/varde-flyt-deploy.yml` (permanent, ordered,
   secret-less; push to `main` and dispatch); `.github/scripts/`
