@@ -193,8 +193,21 @@ fi
 TARGET_SP_ID=$(jq -r '.value[0].id // empty' <<<"$(gget "/servicePrincipals" \
   --data-urlencode "\$filter=appId eq '${TARGET_CLIENT_ID}'" --data-urlencode "\$select=id")")
 if [ -z "$TARGET_SP_ID" ]; then
-  SP=$(gwrite POST "/servicePrincipals" "$(jq -nc --arg a "$TARGET_CLIENT_ID" '{appId:$a}')")
-  TARGET_SP_ID=$(jq -r '.id' <<<"$SP")
+  # A brand-new application object is not always visible to the service
+  # principal endpoint at once; retry with backoff before giving up.
+  for attempt in 1 2 3 4 5 6; do
+    SP=$(curl -sS -X POST -H "Authorization: Bearer ${GRAPH_TOKEN}" -H 'Content-Type: application/json' \
+      -d "$(jq -nc --arg a "$TARGET_CLIENT_ID" '{appId:$a}')" "${GRAPH}/servicePrincipals")
+    if [ "$(jq -r 'has("error")' <<<"$SP" 2>/dev/null)" != "true" ]; then
+      TARGET_SP_ID=$(jq -r '.id // empty' <<<"$SP")
+      break
+    fi
+    note "service principal not ready yet (attempt ${attempt}/6): $(jq -r '.error.code' <<<"$SP")"
+    sleep 10
+    TARGET_SP_ID=$(jq -r '.value[0].id // empty' <<<"$(gget "/servicePrincipals" \
+      --data-urlencode "\$filter=appId eq '${TARGET_CLIENT_ID}'" --data-urlencode "\$select=id")")
+    [ -n "$TARGET_SP_ID" ] && break
+  done
 fi
 [ -n "$TARGET_SP_ID" ] || fail "could not obtain the target service principal"
 
