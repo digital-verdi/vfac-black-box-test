@@ -150,8 +150,8 @@ mask "$GRAPH_TOKEN"
 GRAPH_SP_ID=$(jq -r '.value[0].id // empty' <<<"$(gget "/servicePrincipals" \
   --data-urlencode "\$filter=appId eq '${GRAPH_APP_ID}'" --data-urlencode "\$select=id")")
 [ -n "$GRAPH_SP_ID" ] || fail "Microsoft Graph service principal not found in this tenant"
-ROLES_JSON=$(gget "/servicePrincipals/${GRAPH_SP_ID}/appRoles" --data-urlencode "\$select=id,value")
-SCOPES_JSON=$(gget "/servicePrincipals/${GRAPH_SP_ID}/oauth2PermissionScopes" --data-urlencode "\$select=id,value")
+ROLES_JSON=$(gget "/servicePrincipals/${GRAPH_SP_ID}/appRoles")
+SCOPES_JSON=$(gget "/servicePrincipals/${GRAPH_SP_ID}/oauth2PermissionScopes")
 
 PROV_SP_ID=$(jq -r '.value[0].id // empty' <<<"$(gget "/servicePrincipals" \
   --data-urlencode "\$filter=appId eq '${ENTRA_APP_ID}'" --data-urlencode "\$select=id")")
