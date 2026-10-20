@@ -35,7 +35,7 @@ jobs:
       ADMIN_EMAIL: ${{ vars.INITIAL_EMAIL_ADDRESS }}
       ENTRA_TENANT_ID: ${{ vars.ENTRA_TENANT_ID }}
       ENTRA_CLIENT_ID: ${{ vars.TARGET_ENTRA_APP_ID }}
-      RESOURCES: "identity-sso"
+      RESOURCES: "identity-sso rute-ai-gateway frende-ai-chat"
     steps:
       - name: Check out
         uses: actions/checkout@v4
