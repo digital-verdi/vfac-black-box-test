@@ -43,20 +43,23 @@ reviewable before it happens.
 
 ## Status
 
-- **Live now.** One Product Instance — **Identity — SSO** — is deployed in the
-  demo Project and kept converged by the pipeline on every push to `main`;
-  sign-in and directory access both report READY.
-- **Next.** Bind the other Products to this identity service — their `SSO`
-  sign-in, per each Product's own published deployment example.
+- **Live now.** Three Product Instances are deployed in the demo Project and kept
+  converged by the pipeline on every push to `main` — **Identity — SSO**, **Rute —
+  AI Gateway** and **Frende — AI Chat**. Frende signs people in through Identity
+  and reaches Rute purely by Resource-output references.
+- **Pending.** Interactive Entra sign-in and the browser-level functional checks;
+  everything the published interfaces allow is automated.
 
 ## Explore
 
-- [resources/identity-sso.yaml](resources/identity-sso.yaml) — the committed
-  Product Instance manifest (a template; tenant values are rendered from the
-  pipeline configuration, and no secret is ever in it).
+- [resources/identity-sso.yaml](resources/identity-sso.yaml),
+  [resources/rute-ai-gateway.yaml](resources/rute-ai-gateway.yaml),
+  [resources/frende-ai-chat.yaml](resources/frende-ai-chat.yaml) — the committed
+  Product Instance manifests (templates; tenant values are rendered from the
+  pipeline configuration, and no secret is ever in them).
 - [.github/workflows/varde-flyt-deploy.yml](.github/workflows/varde-flyt-deploy.yml)
-  — the declarative pipeline: `validate → plan → apply --wait` on every push to
-  `main`, carrying no product secret.
+  — the declarative pipeline: an ordered resource list, `validate → plan → apply
+  --wait`, carrying no product secret.
 - [AGENTS.md](AGENTS.md) — how the agent that works in this repository is instructed.
 - [docs/pdac/handoff.md](docs/pdac/handoff.md) — the current handoff record, plus
   the rotation and recovery procedure for the Entra service.

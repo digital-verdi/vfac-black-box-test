@@ -23,6 +23,31 @@
   `manifestKey` (not `metadata.key`). `vfac apply … --output json` returns
   `resourceId`; `vfac plan … --output json` returns `action`, `productInstanceId`,
   `secretsToWrite`, `health`.
+- **Rute's root secret has no leading slash:** `vfac` takes a root-level secret
+  by name (`--secret openRouterApiKey=env:OPENROUTER_API`) and **rejects**
+  `/openRouterApiKey` (`--secret expects a setting name…`, exit 2). Only a secret
+  inside a group uses a path (`/administrator/oneTimePassword`).
+- **A reference forces deploy order, and the platform enforces it:** Frende reads
+  Rute's `serviceUrl` (`aiEndpoints[].baseURL`) and `serviceApiKey`
+  (`modelProviderApiKey` — a credential output filling a credential setting) by
+  `valueFrom.resourceOutput`. Planning Frende before Rute exists answers
+  `409 MANIFEST_REFERENCE_NOT_FOUND`, so Rute must converge first, and no API key
+  is created or copied by hand anywhere.
+- **Rute `administratorSignIn: identity-provider`** drops the local
+  administrator-password requirement (`initialAdministratorPassword` is
+  x-required-when only for `local-password`) and makes the `human-identity` +
+  `human-directory` bindings required. Rute's `contextGuarantee` is enforced when
+  the gateway starts: `custom` with a token count starts only if the group's first
+  model **and** an allowed provider hold that window; `routingConfiguration`
+  READY is the platform's confirmation.
+- **Frende declares no integration API** (browser and admin surfaces only), so the
+  automated proof that its link to Rute works is the `modelEndpoint` condition
+  ("the AI endpoint actually answers"). Per-model chat checks, web search and the
+  rest of the UI suite are human. `searchProviderApiKey` cannot be plan-detected
+  by contract, so it is sent only on Frende's first configuration.
+- **The permanent pipeline refuses `CREATE`.** A resource's first creation carries
+  its product secret, so it belongs to a temporary, manually-run bootstrap; the
+  durable workflow only updates or converges and requires `secretsToWrite: []`.
 - **Entra provisioning (Microsoft Graph, outside the PdAC surface, done only in a
   temporary maintenance step):** creating a brand-new application and its service
   principal back-to-back races — `servicePrincipals` can answer "does not

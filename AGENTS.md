@@ -10,12 +10,16 @@ build, tests, or lint — do not invent or run build/test tooling.
 
 ## Layout
 
-- `resources/identity-sso.yaml` — the committed manifest **template** for the
-  Identity SSO Product Instance. Tenant-specific, non-secret values are rendered
-  from GitHub Actions config; never add a secret to it.
+- `resources/*.yaml` — committed Product Instance manifest **templates** for the
+  deployed services (Identity SSO, Rute AI Gateway, Frende AI Chat).
+  Tenant-specific, non-secret values are rendered from GitHub Actions config;
+  never add a secret to one.
 - `.github/workflows/varde-flyt-deploy.yml` — the permanent declarative pipeline
-  (push to `main`). `.github/scripts/` holds the manifest renderer and the
-  one-off Entra/Identity maintenance tool.
+  (push to `main`): an **ordered** resource list, secret-less.
+- `.github/scripts/` — `render-manifest.sh` (renders a template), `lib.sh`
+  (shared helpers + the Identity preservation guard), `deploy.sh` (the ordered
+  deploy), and the maintenance tools `identity-sso-bootstrap.sh` /
+  `app-bootstrap.sh` (not wired to any workflow; run only from a temporary one).
 - `docs/pdac/handoff.md` — reusable handoff template, mostly `<placeholder>` /
   `<resource-id>` tokens. It is **not** evidence of a current deployment; never
   treat placeholders as real IDs or deployable configuration.
@@ -41,9 +45,14 @@ build, tests, or lint — do not invent or run build/test tooling.
   configuration, dependencies and outputs from the platform on every run — never
   hardcode them, and never write them into these files.
 - Pass secrets only as `--secret NAME=env:VARIABLE`, only on a run that sets one
-  (first deploy, first use of a setting, or a rotation). Never put a Gate Secret,
-  another secret value, or a copied credential output in a manifest, a prompt, or
-  any committed file.
+  (first deploy, first use of a setting, or a rotation). A **root-level** secret
+  name has no leading slash (`openRouterApiKey`); a `/group/setting` path is for a
+  secret inside a group. Never put a Gate Secret, another secret value, or a
+  copied credential output in a manifest, a prompt, or any committed file.
+- A resource's **first creation** carries its product secret, so it is a
+  temporary, manually-run bootstrap; the permanent pipeline refuses `CREATE` and
+  only updates or converges existing resources. Bindings and references are
+  resolved in dependency order (Identity → Rute → Frende).
 - `npm install -g @varde-flyt/vfac` installs the CLI; in this image the global npm
   prefix is not writable by the agent user, so the install needs `sudo`.
 - Deployment configuration lives in **GitHub Actions repository variables** and
