@@ -15,11 +15,14 @@ build, tests, or lint — do not invent or run build/test tooling.
   Tenant-specific, non-secret values are rendered from GitHub Actions config;
   never add a secret to one.
 - `.github/workflows/varde-flyt-deploy.yml` — the permanent declarative pipeline
-  (push to `main`): an **ordered** resource list, secret-less.
+  (push to `main`): an **ordered** resource list, secret-less. Its companions are
+  `varde-flyt-app-bootstrap.yml` (manual; first creation of Rute/Frende) and
+  `varde-flyt-teardown.yml` (manual, requires `confirm: DELETE`; deletes
+  Rute/Frende only, never Identity).
 - `.github/scripts/` — `render-manifest.sh` (renders a template), `lib.sh`
   (shared helpers + the Identity preservation guard), `deploy.sh` (the ordered
-  deploy), and the maintenance tools `identity-sso-bootstrap.sh` /
-  `app-bootstrap.sh` (not wired to any workflow; run only from a temporary one).
+  deploy), the maintenance tools `identity-sso-bootstrap.sh` / `app-bootstrap.sh`
+  (run only from a manual workflow), and `teardown.sh`.
 - `docs/pdac/handoff.md` — reusable handoff template, mostly `<placeholder>` /
   `<resource-id>` tokens. It is **not** evidence of a current deployment; never
   treat placeholders as real IDs or deployable configuration.

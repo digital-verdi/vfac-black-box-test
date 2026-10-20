@@ -1,0 +1,58 @@
+name: Teardown Rute + Frende (demo)
+
+# Deletes Rute and Frende from the demo Project, and NOTHING else — Identity
+# (box-shared-sso-prod) is guarded and never touched. The deployment code
+# (manifests, varde-flyt-deploy.yml, scripts) is left intact, so the environment
+# is created again with the manual "Rute + Frende bootstrap" workflow followed by
+# "Deploy Varde Flyt resources". No manifest or resource-list change is needed.
+#
+# Only a person can start this, only from main, and it must be confirmed.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type DELETE to confirm deleting Rute and Frende'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# Shared with the deploy workflow so a teardown never overlaps a deployment.
+concurrency:
+  group: varde-flyt-deploy
+  cancel-in-progress: false
+
+jobs:
+  teardown:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Refuse unless confirmed
+        if: inputs.confirm != 'DELETE'
+        run: |
+          echo "Refusing: the 'confirm' input must be exactly DELETE." >&2
+          exit 1
+
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install vfac
+        run: npm install --global @varde-flyt/vfac
+
+      - name: Delete Rute and Frende
+        env:
+          VFAC_ENDPOINT: ${{ vars.VFAC_ENDPOINT }}
+          VFAC_CREDENTIAL_ID: ${{ vars.VFAC_CREDENTIAL_ID }}
+          VFAC_PROJECT_ID: ${{ vars.VFAC_PROJECT_ID }}
+          ADMIN_EMAIL: ${{ vars.INITIAL_EMAIL_ADDRESS }}
+          ENTRA_TENANT_ID: ${{ vars.ENTRA_TENANT_ID }}
+          ENTRA_CLIENT_ID: ${{ vars.TARGET_ENTRA_APP_ID }}
+          VFAC_CREDENTIAL_SECRET: ${{ secrets.VFAC_CREDENTIAL_SECRET }}
+        run: bash .github/scripts/teardown.sh

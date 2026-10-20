@@ -221,3 +221,27 @@ product secrets too, sent only by the temporary bootstrap
 
 The permanent pipeline refuses `CREATE`: first creation always belongs to a
 temporary bootstrap, never to an ordinary push.
+
+## Teardown / reset for the demo
+
+`varde-flyt-teardown.yml` (manual only, input `confirm: DELETE`, from `main`)
+deletes **Rute and Frende only**, in that order — Frende *reads* Rute
+(`serviceUrl`, `serviceApiKey`), so the reader goes first. It guards Identity
+before and after (key, exact id `pri_01m5crw6b7e008b4jz1d67xbkk`, ACTIVE,
+converged, `NO_CHANGE`, `secretsToWrite: []`), reads each resource's
+`lifecycle.allowed` and stops with the reason if `delete` is refused, then polls
+the delete Operation (`vfac lifecycle` refuses `--wait`).
+
+The deployment code is untouched: no manifest and no `RESOURCES` entry changes.
+
+**Recreate (two dispatches, no push):**
+
+1. `gh workflow run "Rute + Frende bootstrap" --ref main` — Rute first, then
+   Frende with its Resource-output references.
+2. `gh workflow run "Deploy Varde Flyt resources" --ref main` — expect
+   `NO_CHANGE` for all three.
+
+Rute and Frende get **new Resource IDs** on recreate; Identity is untouched and
+needs no re-provisioning. While they are deleted, an ordinary push runs the
+permanent workflow and **fails controlled** — it refuses `CREATE` ("first
+creation is a bootstrap"), so a deleted resource is never recreated empty.

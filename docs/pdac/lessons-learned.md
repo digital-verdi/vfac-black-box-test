@@ -48,6 +48,17 @@
 - **The permanent pipeline refuses `CREATE`.** A resource's first creation carries
   its product secret, so it belongs to a temporary, manually-run bootstrap; the
   durable workflow only updates or converges and requires `secretsToWrite: []`.
+  That is also what makes a demo teardown safe: after deleting Rute/Frende an
+  ordinary push fails controlled instead of recreating empty resources.
+- **Deleting a reader→provider pair: delete the reader first.** Frende reads
+  Rute's outputs, and a resource another resource reads cannot be deleted until
+  that reference is gone, so Frende goes before Rute.
+- **`vfac lifecycle` refuses `--wait`** — a flag that parses and does nothing is
+  worse than one that does not exist. Capture the `operationId` and poll
+  `vfac get operation`. Read the resource's `lifecycle.allowed` / `refused`
+  **before** asking for the command: `resource.delete` needs the write
+  (Project-administrator) grant, so the read gate is refused with
+  `permission_required` — that refusal is the grant working, not a fault.
 - **Entra provisioning (Microsoft Graph, outside the PdAC surface, done only in a
   temporary maintenance step):** creating a brand-new application and its service
   principal back-to-back races — `servicePrincipals` can answer "does not
