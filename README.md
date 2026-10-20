@@ -39,31 +39,34 @@ reviewable before it happens.
    └──────────────┘
 ```
 
-*The manifest and the deploy workflow are this repository's next step — see Status.*
+*Identity — SSO is deployed through exactly this path today — see Status.*
 
 ## Status
 
-- **Inspect now.** How the agent is instructed ([AGENTS.md](AGENTS.md)), the naming
-  guidance ([docs/standards/](docs/standards/naming-conventions.md)), and the
-  operational record ([docs/pdac/handoff.md](docs/pdac/handoff.md),
-  [docs/pdac/lessons-learned.md](docs/pdac/lessons-learned.md)).
-- **Next demonstration.** A committed **Product Instance manifest** and a GitHub
-  Actions workflow that runs `vfac` over it. Neither is committed yet, and the demo
-  Project currently holds no deployed Resources.
+- **Live now.** One Product Instance — **Identity — SSO** — is deployed in the
+  demo Project and kept converged by the pipeline on every push to `main`;
+  sign-in and directory access both report READY.
+- **Next.** Bind the other Products to this identity service — their `SSO`
+  sign-in, per each Product's own published deployment example.
 
 ## Explore
 
+- [resources/identity-sso.yaml](resources/identity-sso.yaml) — the committed
+  Product Instance manifest (a template; tenant values are rendered from the
+  pipeline configuration, and no secret is ever in it).
+- [.github/workflows/varde-flyt-deploy.yml](.github/workflows/varde-flyt-deploy.yml)
+  — the declarative pipeline: `validate → plan → apply --wait` on every push to
+  `main`, carrying no product secret.
 - [AGENTS.md](AGENTS.md) — how the agent that works in this repository is instructed.
-- [docs/standards/naming-conventions.md](docs/standards/naming-conventions.md) and
-  [docs/standards/resource-abbreviations.md](docs/standards/resource-abbreviations.md)
-  — naming guidance (non-normative).
-- [docs/pdac/handoff.md](docs/pdac/handoff.md) — the current handoff record:
-  objective, state and next safe action.
+- [docs/pdac/handoff.md](docs/pdac/handoff.md) — the current handoff record, plus
+  the rotation and recovery procedure for the Entra service.
 - [docs/pdac/lessons-learned.md](docs/pdac/lessons-learned.md) — Product-specific
   gotchas, written down once.
 - [docs/pdac/cli-quickstart.md](docs/pdac/cli-quickstart.md) — the operator path:
   install, sign-in, `validate`/`plan`/`apply`, and how secrets are passed.
-- **Workflows** — none committed yet, so there is no pipeline to run here today.
+- [docs/standards/naming-conventions.md](docs/standards/naming-conventions.md) and
+  [docs/standards/resource-abbreviations.md](docs/standards/resource-abbreviations.md)
+  — naming guidance (non-normative).
 
 For the platform's own, authoritative instructions, run `vfac guide`. Platform:
 <https://dv-preview.cloud.vardeflyt.no>

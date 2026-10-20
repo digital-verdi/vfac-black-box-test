@@ -81,3 +81,12 @@ vfac lifecycle suspend|resume|upgrade|reconcile|delete pri_...
 ```
 
 `delete` is irreversible and needs `--yes`.
+
+## In this repository
+
+The committed manifest is `resources/identity-sso.yaml` — a template rendered by
+`.github/scripts/render-manifest.sh` from GitHub Actions configuration (no secret
+is ever in it). The pipeline `.github/workflows/varde-flyt-deploy.yml` runs
+`validate → plan → apply --wait` on every push to `main`, carries no product
+secret, and therefore converges without redeploying. The deployed state and the
+Entra rotation/recovery procedure are in `docs/pdac/handoff.md`.

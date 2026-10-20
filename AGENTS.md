@@ -46,11 +46,11 @@ build, tests, or lint — do not invent or run build/test tooling.
   any committed file.
 - `npm install -g @varde-flyt/vfac` installs the CLI; in this image the global npm
   prefix is not writable by the agent user, so the install needs `sudo`.
-- Deployment configuration for this repository lives in **GitHub Actions
-  repository variables** and its secrets in **GitHub Actions repository
-  secrets** — but no workflow consumes them yet, so there is no runnable
-  pipeline. Refer to a secret by name only; never read its value. The Gate a
-  deployment workflow uses is separate from any session credential.
+- Deployment configuration lives in **GitHub Actions repository variables** and
+  its secrets in **GitHub Actions repository secrets**; the permanent pipeline
+  `.github/workflows/varde-flyt-deploy.yml` consumes them on every push to
+  `main`. Refer to a secret by name only; never read its value. Its Gate is
+  separate from any session credential.
 - Nothing here is platform truth: read the live Project, Product and Resource
   state again before acting on anything these files say.
 
