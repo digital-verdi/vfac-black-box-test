@@ -1,0 +1,212 @@
+# Frende — AI Chat (Product Deployment as Code)
+#
+# Template: ${ADMIN_EMAIL} is rendered from vars.INITIAL_EMAIL_ADDRESS by
+# .github/scripts/render-manifest.sh. Secrets are never here — the web-search
+# credential travels beside the manifest as
+# `--secret /searchProviderApiKey=env:TAVILY_API_KEY` on the bootstrap run only.
+#
+# One OpenAI-compatible endpoint (Rute), two model groups, three prepared model
+# choices (Frontier – Instant is the default). Rute is reached purely by
+# Resource-output references — nothing is copied by hand.
+
+apiVersion: resources.vardeflyt.no/v1
+kind: ProductInstance
+metadata:
+  name: box-shared-chat-prod
+  key: box-shared-chat-prod
+spec:
+  productId: frende-ai-chat
+  productVersion: "4.0.0"
+  region: fr-par
+  profile: developer
+  configuration:
+    workspace:
+      name: Varde Frende
+      customWelcome: "Velkommen til Frende – din AI-assistent."
+      defaultResponseLanguage: nb
+      systemInstructions: >-
+        Svar på samme språk som brukeren benytter, med norsk bokmål som standard.
+        Bruk tilgjengelig, autorisert informasjon om innlogget bruker til personlig
+        tilpasning, uten å utlede eller anta sensitive egenskaper. Bruk den lokale
+        datoen, tiden, tidssonen og UTC-konteksten nedenfor ved relative
+        datoangivelser, og oppgi absolutte datoer når en tidsangivelse kan
+        misforstås. Ikke påstå at websøk, verktøy eller andre eksterne handlinger er
+        utført uten at de faktisk er gjennomført. Skill tydelig mellom informasjon
+        som kommer fra en kilde og modellens egne vurderinger.
+
+        # Kontekst
+
+        Innlogget bruker: {{current_user}}
+
+        Lokal dato: {{current_date}}
+
+        Lokal dato og tid: {{current_datetime}}
+
+        UTC dato og tid: {{iso_datetime}}
+    access:
+      signInMethod: Varde Identity
+      initialAdministrator: "${ADMIN_EMAIL}"
+    models:
+      defaultModel: frontier
+      maxResponseTokens: 8192
+    aiEndpoints:
+      - name: Varde Secure
+        baseURL:
+          valueFrom:
+            resourceOutput:
+              resourceKey: box-shared-gw-prod
+              output: serviceUrl
+        models:
+          - frontier
+          - standard
+        keySlot: A
+        titleConvo: true
+        modelDisplayLabel: Varde Secure
+        dropParams:
+          - stop
+          - user
+    modelProviderApiKey:
+      valueFrom:
+        resourceOutput:
+          resourceKey: box-shared-gw-prod
+          output: serviceApiKey
+    modelSpecs:
+      - name: frontier-instant
+        label: Frontier – Instant
+        model: frontier
+        order: 1
+        default: true
+        endpoint: Varde Secure
+        capabilities:
+          artifacts: true
+          webSearch: true
+        advancedOptions:
+          - name: maxContextTokens
+            value: "100000"
+          - name: max_tokens
+            value: "8192"
+          - name: append_current_datetime
+            value: "true"
+      - name: standard-instant
+        label: Standard – Instant
+        model: standard
+        order: 2
+        endpoint: Varde Secure
+        capabilities:
+          artifacts: true
+          webSearch: true
+        advancedOptions:
+          - name: maxContextTokens
+            value: "100000"
+          - name: max_tokens
+            value: "8192"
+          - name: thinkingLevel
+            value: minimal
+          - name: append_current_datetime
+            value: "true"
+      - name: standard-think
+        label: Standard – Think
+        model: standard
+        order: 3
+        endpoint: Varde Secure
+        capabilities:
+          artifacts: true
+          webSearch: true
+        advancedOptions:
+          - name: maxContextTokens
+            value: "100000"
+          - name: max_tokens
+            value: "8192"
+          - name: thinkingLevel
+            value: medium
+          - name: append_current_datetime
+            value: "true"
+    webSearch:
+      enabled: true
+      searchProvider: tavily
+      scraperProvider: tavily
+      safeSearch: 1
+      rerankerType: none
+      scraperTimeout: 7500
+      searchOptions:
+        - name: includeAnswer
+          value: basic
+        - name: includeRawContent
+          value: markdown
+        - name: maxResults
+          value: "5"
+        - name: searchDepth
+          value: basic
+        - name: topic
+          value: general
+      scraperOptions:
+        - name: extractDepth
+          value: basic
+        - name: format
+          value: markdown
+    files:
+      uploadEnabled: true
+      serverFileSizeLimit: 20
+      fileLimit: 10
+      fileTokenLimit: 100000
+    ui:
+      modelSelect: false
+      parameters: true
+      presets: true
+      contextUsage: true
+      contextCost: false
+      temporaryChatRetention: 24
+    features:
+      bookmarks: true
+      multiConvo: true
+      temporaryChat: true
+      prompts:
+        use: true
+        create: true
+        share: true
+        public: false
+    agents:
+      use: true
+      create: true
+      share: true
+      public: false
+      capabilities:
+        webSearch: true
+        artifacts: true
+        context: true
+        tools: true
+    skills:
+      use: true
+      create: true
+      share: true
+      public: false
+      defaultActiveOnShare: false
+      sync:
+        enabled: false
+    memory:
+      enabled: true
+      tokenLimit: 2000
+      charLimit: 10000
+      maxInputTokens: 12000
+      personalize: true
+      messageWindowSize: 5
+    summarization:
+      enabled: true
+      triggerType: token_ratio
+      triggerValue: 80
+      reserveRatio: 0.2
+      maxSummaryTokens: 1024
+    sharing:
+      create: true
+      share: true
+      public: false
+      snapshotFiles: false
+    dataProtection:
+      conversationRetentionDays: 30
+    balance:
+      enabled: false
+  dependencyBindings:
+    human-identity:
+      resourceKey: box-shared-sso-prod
+    human-directory:
+      resourceKey: box-shared-sso-prod

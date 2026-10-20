@@ -1,0 +1,66 @@
+# Rute — AI Gateway (Product Deployment as Code)
+#
+# Template: ${ADMIN_EMAIL} is rendered from vars.INITIAL_EMAIL_ADDRESS by
+# .github/scripts/render-manifest.sh. The OpenRouter credential is a secret and
+# is never here — it travels beside the manifest as
+# `--secret /openRouterApiKey=env:OPENROUTER_API` on the bootstrap run only.
+#
+# Two groups only, per the task: frontier (default) and standard. No eu-secure
+# group and no Mistral key. Administrator sign-in is the existing Varde Identity
+# resource; with identity-provider there is no local administrator password.
+
+apiVersion: resources.vardeflyt.no/v1
+kind: ProductInstance
+metadata:
+  name: box-shared-gw-prod
+  key: box-shared-gw-prod
+spec:
+  productId: rute-ai-gateway
+  productVersion: "6.3.0"
+  region: fr-par
+  profile: developer
+  configuration:
+    chatRouting:
+      defaultGroupId: frontier
+      groups:
+        - id: frontier
+          name: frontier
+          models:
+            - model: deepseek/deepseek-v4.1-flash
+              provider: openrouter
+              providerRouting:
+                only:
+                  - baseten
+                  - together
+                  - digitalocean
+                  - modal
+                  - venice/fp8
+                  - coreweave/fp8
+                order:
+                  - baseten
+                  - together
+                  - digitalocean
+                  - modal
+                  - venice/fp8
+                  - coreweave/fp8
+                ignore:
+                  - baseten/fast
+                allowFallbacks: true
+          contextGuarantee:
+            mode: custom
+            contextLength: 1000000
+        - id: standard
+          name: standard
+          models:
+            - model: openai/gpt-6-luna
+              provider: openrouter
+          contextGuarantee:
+            mode: model
+    administratorSignIn: identity-provider
+    initialAdministratorEmail: "${ADMIN_EMAIL}"
+    europeanProcessingRouting: false
+  dependencyBindings:
+    human-identity:
+      resourceKey: box-shared-sso-prod
+    human-directory:
+      resourceKey: box-shared-sso-prod
