@@ -1,0 +1,65 @@
+name: Identity SSO bootstrap (temporary)
+
+# TEMPORARY, manually started. Provisions the SSO target Entra app registration
+# with the existing provisioning app, then deploys Identity — SSO in the
+# product's published two steps. Removed once the bootstrap is verified; the
+# permanent, declarative pipeline is varde-flyt-deploy.yml (added afterwards).
+#
+# Microsoft Graph is used only here, for Entra provisioning — outside the PdAC
+# surface by design. No product secret is ever written to a manifest, a log, an
+# artifact or a job output; the Entra client secret lives only inside the single
+# step below.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "bootstrap | recover | rotate"
+        required: true
+        default: bootstrap
+        type: choice
+        options:
+          - bootstrap
+          - recover
+          - rotate
+
+permissions:
+  contents: read
+
+concurrency:
+  group: varde-flyt-entra-bootstrap
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    # Only the deployment ref may run this.
+    if: github.ref == 'refs/heads/main'
+    env:
+      VFAC_ENDPOINT: ${{ vars.VFAC_ENDPOINT }}
+      VFAC_CREDENTIAL_ID: ${{ vars.VFAC_CREDENTIAL_ID }}
+      VFAC_PROJECT_ID: ${{ vars.VFAC_PROJECT_ID }}
+      ENTRA_TENANT_ID: ${{ vars.ENTRA_TENANT_ID }}
+      ENTRA_APP_ID: ${{ vars.ENTRA_APP_ID }}
+      INITIAL_EMAIL_ADDRESS: ${{ vars.INITIAL_EMAIL_ADDRESS }}
+      TARGET_APP_NAME: box-shared-sso-prod
+      MODE: ${{ inputs.mode }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install vfac
+        run: npm install --global @varde-flyt/vfac
+
+      # The write Gate secret is scoped to this step alone, and only here.
+      - name: Provision Entra app and deploy Identity SSO (two steps)
+        env:
+          VFAC_CREDENTIAL_SECRET: ${{ secrets.VFAC_CREDENTIAL_SECRET }}
+          ENTRA_APP_SECRET: ${{ secrets.ENTRA_APP_SECRET }}
+          INITIAL_EMAIL_SECRET: ${{ secrets.INITIAL_EMAIL_SECRET }}
+        run: bash .github/scripts/identity-sso-bootstrap.sh

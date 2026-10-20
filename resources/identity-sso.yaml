@@ -1,0 +1,37 @@
+# Identity — SSO (Product Deployment as Code)
+#
+# This file is a TEMPLATE. Tenant-specific, non-secret values are rendered from
+# the GitHub Actions configuration at deploy time (see the workflows); the two
+# secrets are never here — they travel beside the manifest as
+# `--secret /administrator/oneTimePassword=env:...` and
+# `--secret /entra/clientSecret=env:...`.
+#
+# Placeholders:
+#   ${ADMIN_EMAIL}       <- vars.INITIAL_EMAIL_ADDRESS
+#   ${ENTRA_TENANT_ID}   <- vars.ENTRA_TENANT_ID
+#   ${ENTRA_CLIENT_ID}   <- the SSO target app's client id (created by the
+#                           temporary Entra bootstrap, then pinned here)
+#
+# The vfac-bootstrap markers below let the bootstrap render the step-1 manifest
+# WITHOUT the Entra group (the product's published two-step deployment example):
+# deploy first, register the published `entraRedirectUri` output on the target
+# app, then supply `/entra`.
+
+apiVersion: resources.vardeflyt.no/v1
+kind: ProductInstance
+metadata:
+  name: box-shared-sso-prod
+  key: box-shared-sso-prod
+spec:
+  productId: identity-sso
+  productVersion: 5.0.0
+  region: fr-par
+  profile: standard
+  configuration:
+    administrator:
+      email: "${ADMIN_EMAIL}"
+    # vfac-bootstrap:entra:begin
+    entra:
+      tenantId: "${ENTRA_TENANT_ID}"
+      clientId: "${ENTRA_CLIENT_ID}"
+    # vfac-bootstrap:entra:end
