@@ -12,6 +12,37 @@
 - The global CLI install needs `sudo` in this image:
   `/usr/local/lib/node_modules` is not writable by the agent user, so a plain
   `npm install -g @varde-flyt/vfac` fails with `EACCES`.
+- Two Gates, and they are different identities: the session reads through
+  `b-bx-agent-read` (a read-only OBSERVATION gate, `validate`/`plan`/inspect
+  only), while the pipeline deploys through `b-bx-github-actions`
+  (`VFAC_CREDENTIAL_ID`/`VFAC_CREDENTIAL_SECRET`). `vfac doctor` shows the
+  selected Project and the Gate's reach as separate facts.
+- **API shapes that cost a run:** `GET /servicePrincipals/{id}/appRoles` and
+  `/oauth2PermissionScopes` reject `$select=value` (`Request_BadRequest`); omit
+  `$select`. `vfac get product-instances --output json` items carry the key in
+  `manifestKey` (not `metadata.key`). `vfac apply … --output json` returns
+  `resourceId`; `vfac plan … --output json` returns `action`, `productInstanceId`,
+  `secretsToWrite`, `health`.
+- **Entra provisioning (Microsoft Graph, outside the PdAC surface, done only in a
+  temporary maintenance step):** creating a brand-new application and its service
+  principal back-to-back races — `servicePrincipals` can answer "does not
+  reference a valid application object" for a few seconds; retry with backoff.
+  `Application.ReadWrite.All` alone is not enough: consent needs
+  `AppRoleAssignment.ReadWrite.All` (application) and
+  `DelegatedPermissionGrant.ReadWrite.All` (tenant-wide delegated); the preflight
+  must verify the set it actually needs and stop on a miss. An application's
+  client secret is returned once and can never be read back, so a bootstrap that
+  is interrupted before the Identity apply must mint a **new** secret on recovery
+  and the old one is left to expire.
+- **Idempotent secret preservation is real, and is proven by a plan, not
+  assumed:** `vfac plan` with **no** `--secret` against the deployed Identity
+  resource returns `action: NO_CHANGE`, `secretsToWrite: []` and `health.status:
+  ACTIVE`; the stored `/administrator/oneTimePassword` and `/entra/clientSecret`
+  are kept. That is what makes a secret-less `apply` on every push safe. Sending a
+  secret is itself a change, so an ordinary push must send none. Identity's
+  `signIn` condition stays `ACTION_REQUIRED` until a human does a real interactive
+  Entra sign-in — `directoryAccess` is verified automatically and is READY/
+  FRESH without one.
 
 - Kreo 2.1.3 plans an SSO/Rute deployment without Product secret inputs when its
   AI credential references Rute's serviceApiKey. Its Identity sign-in binding

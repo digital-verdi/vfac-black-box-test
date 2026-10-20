@@ -2,45 +2,41 @@
 
 > Operational handoff for PdAC changes. This is a reusable record, **not evidence of a current deployment**. Fill in the current Project, Resource identities, manifest paths, Operations, workflow runs and verification results from live state before acting. Placeholder values are not deployable configuration.
 
-## Current status — bootstrap, no deployment
+## Current status — Identity SSO deployed via PdAC
 
-- Objective: bootstrap this repository for Varde Flyt PdAC work. No deployment or
-  change has been requested; the deployment playbook is reference only.
-- Project: `prj_01m4qqme1ve00a5e8swvf4dghc` — name `vfac-black-box`, status
-  `ACTIVE` — selected in the local `vfac` context (from the repository's
-  `VFAC_PROJECT_ID`), and verified live with `vfac project show`.
-- Resources deployed: **none**. `vfac get product-instances --output json`
-  returns an empty list, so this Project holds no Product Instances and there are
-  no Resource or Operation ids to find.
-- Session credential: a read-only (OBSERVATION) Context Gate, read from the
-  gitignored `.env.vfac-cli-read-access`. It discovers, validates, plans and
-  inspects; it **cannot apply and cannot run a lifecycle command** — that refusal
-  is the grant working, not a fault.
-- Manifest and pipeline files touched: none. No `resources/` manifest and no CI
-  workflow (`.github/workflows/`, GitLab, Jenkins, …) is committed here.
-- CI/CD: the repository is on GitHub; no workflow is committed (`gh workflow
-  list` is empty), so there is **no runnable deployment pipeline yet**, even
-  though the GitHub repository already carries Actions variables and secrets
-  (below). A GitHub remote does not prove CI/CD is wired up.
-- Verified: `vfac 0.18.3` (the current release) is installed; `vfac doctor`,
-  `vfac guide` and `vfac whoami` succeed with the read gate against the
-  organization's endpoint; a Varde Flyt MCP server is connected and answers.
-- Where ids, configuration and secrets live: the endpoint and read gate in the
-  gitignored `.env.vfac-cli-read-access`; **GitHub Actions repository variables**
-  — `VFAC_ENDPOINT`, `VFAC_CREDENTIAL_ID`, `VFAC_PROJECT_ID`, `ENTRA_APP_ID`,
-  `ENTRA_TENANT_ID`, `INITIAL_EMAIL_ADDRESS`; **GitHub Actions repository
-  secrets** — `VFAC_CREDENTIAL_SECRET`, `ENTRA_APP_SECRET`,
-  `INITIAL_EMAIL_SECRET`, `MISTRAL_API_KEY`, `OPENROUTER_API`, `TAVILY_API_KEY`.
-  Names only — no secret value was read. The Gate a deployment workflow would use
-  (`VFAC_CREDENTIAL_ID` + `VFAC_CREDENTIAL_SECRET`) is a Project-administrator
-  gate, **separate from this session's read gate**.
-- Remains before a deployment could run: a write-capable (Project-administrator)
-  Gate for whoever deploys; at least one committed manifest; a CI/CD workflow that
-  runs the same `validate → plan → apply` path over it; and the Product secret
-  values kept only in GitHub Actions repository secrets.
-- Next safe action: wait for a task that names the deployment. This read gate can
-  read the catalogue, `validate` and `plan`, but it cannot `apply` or run
-  lifecycle; deploy through the repository's separate write gate.
+- Objective: deploy Identity — SSO (`box-shared-sso-prod`) as a Product Instance
+  in Project `prj_01m4qqme1ve00a5e8swvf4dghc`, with SSO through a dedicated Entra
+  app registration.
+- Deployed resource: `pri_01m5crw6b7e008b4jz1d67xbkk`, key `box-shared-sso-prod`,
+  Product `identity-sso`, status **ACTIVE**. Conditions: `directoryAccess`
+  **READY/FRESH**, `logForwarding` READY/FRESH, `signIn`
+  **ACTION_REQUIRED/FRESH** — no real interactive Entra sign-in has happened yet.
+- Manifests and pipeline: `resources/identity-sso.yaml` (template),
+  `.github/workflows/varde-flyt-deploy.yml` (permanent: push to `main` and
+  dispatch), `.github/scripts/render-manifest.sh` (renders the template),
+  `.github/scripts/identity-sso-bootstrap.sh` (maintenance tool, not wired to a
+  workflow). The temporary Entra bootstrap workflow has been **removed**.
+- Session credential: read-only (OBSERVATION) Gate in `.env.vfac-cli-read-access`
+  — `validate`/`plan`/inspect only. The pipeline deploys with the **separate**
+  write Gate `VFAC_CREDENTIAL_ID` + `VFAC_CREDENTIAL_SECRET` (identity
+  `b-bx-github-actions`).
+- Entra: provisioning app `ENTRA_APP_ID` (Graph application permissions
+  `Application.ReadWrite.All`, `AppRoleAssignment.ReadWrite.All`,
+  `DelegatedPermissionGrant.ReadWrite.All`); SSO target app `box-shared-sso-prod`
+  (client id in repo variable `TARGET_ENTRA_APP_ID`, directory in
+  `ENTRA_TENANT_ID`). The target app's **180-day client secret exists only in the
+  platform** (sent once as `/entra/clientSecret`); it is stored nowhere in this
+  repository.
+- Verified: the permanent workflow ran green — plan `NO_CHANGE`, `health`
+  ACTIVE, `secretsToWrite: []`; and a plan with no `--secret` against the live
+  resource returns `NO_CHANGE`, so an ordinary push keeps the stored secrets and
+  never rotates them.
+- Remains: a human administrator performs a real interactive Entra sign-in (then
+  `signIn` becomes READY/FRESH), after which the administration handover is
+  enabled.
+- Next safe action: have the first administrator sign in (console "Test
+  connection", or a real sign-in to a connected application), then re-read the
+  resource conditions. Do not re-run the Entra bootstrap.
 
 ## Current objective
 
@@ -154,3 +150,46 @@ is `READY` or a workflow succeeded. Its eventual deletion, removal
 from the Resource registry and manifest removal belong to a separate,
 explicitly reviewed task after acceptance. Keep the preservation guard
 until that retirement is completed and verified.
+
+## Rotation and recovery — Identity SSO / Entra
+
+The permanent pipeline never touches Entra and never rotates a secret. Entra
+provisioning, the Identity bootstrap, recovery and rotation are **time-bounded
+maintenance operations**, run from a temporary workflow that is created for the
+task and removed once it is verified.
+
+To create one (for a reviewed task):
+
+1. Add a temporary workflow — `workflow_dispatch` only, `permissions:
+   contents: read`, `if: github.ref == 'refs/heads/main'`, and where possible an
+   `environment` with a required reviewer. Give the single run step step-scoped
+   `VFAC_CREDENTIAL_SECRET`, `ENTRA_APP_SECRET` and `INITIAL_EMAIL_SECRET`; it
+   runs `bash .github/scripts/identity-sso-bootstrap.sh` with `MODE` set.
+2. Run it, verify, then **remove the workflow** (the script stays as the
+   maintenance tool).
+
+`MODE` values:
+
+- `bootstrap` — first deployment. Creates or reuses the target app
+  `box-shared-sso-prod` (exact name; more than one match stops the run), mints a
+  **180-day** client secret, deploys Identity step 1 (no `/entra`), registers the
+  published `entraRedirectUri`, grants Graph `User.Read.All` +
+  `GroupMember.Read.All` with admin consent and the OIDC scopes `openid profile
+  email`, sets `Assignment required = No`, then deploys Identity step 2 with
+  `/entra`. Idempotent: if Identity is already configured and `directoryAccess`
+  is READY/FRESH, it does nothing.
+- `recover` — after an interrupted bootstrap. An existing app is reused and a
+  **new** secret is minted (the previous secret was never stored and cannot be
+  read back from Graph).
+- `rotate` — mint a new 180-day secret on the existing app and apply
+  `/entra/clientSecret`. **After** a successful apply, remove the old password
+  credential on the target app in Entra; the platform will not do it for you.
+
+The target client secret is never written to a manifest, a log, an artifact or a
+job output; it exists only in the running step and then in the platform. The
+permanent `varde-flyt-deploy.yml` applies the manifest **without** any secret, so
+the stored secret is kept (verified: plan `NO_CHANGE`, `secretsToWrite: []`).
+
+A `403`/`401` on a Graph call you were never granted is access you do not hold —
+report it and stop; do not widen anything. A missing Graph permission stops the
+preflight before any app is created.

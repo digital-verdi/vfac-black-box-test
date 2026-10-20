@@ -2,14 +2,20 @@
 
 ## What this repo is
 
-Docs-only repository for **Varde Flyt**, demonstrating **Product Deployment as
-Code** (PdAC). There is no source code, package manifest, build, tests, lint, CI,
-`resources/` tree, or `.github/workflows/` here — even though the docs reference
-those paths and a `vfac` CLI. Do not invent or run build/test tooling, and do not
-create the missing directories unless a task explicitly asks for them.
+Repository for **Varde Flyt**, demonstrating **Product Deployment as Code**
+(PdAC): the agent context and docs, the committed Product Instance manifest(s)
+under `resources/`, and the GitHub Actions pipeline under `.github/workflows/`
+that deploys them. There is still no application source code, package manifest,
+build, tests, or lint — do not invent or run build/test tooling.
 
 ## Layout
 
+- `resources/identity-sso.yaml` — the committed manifest **template** for the
+  Identity SSO Product Instance. Tenant-specific, non-secret values are rendered
+  from GitHub Actions config; never add a secret to it.
+- `.github/workflows/varde-flyt-deploy.yml` — the permanent declarative pipeline
+  (push to `main`). `.github/scripts/` holds the manifest renderer and the
+  one-off Entra/Identity maintenance tool.
 - `docs/pdac/handoff.md` — reusable handoff template, mostly `<placeholder>` /
   `<resource-id>` tokens. It is **not** evidence of a current deployment; never
   treat placeholders as real IDs or deployable configuration.

@@ -1,13 +1,17 @@
 #!/usr/bin/env bash
 #
-# Temporary Entra bootstrap + Identity SSO deployment.
+# Maintenance tool: Entra provisioning + Identity SSO bootstrap, recovery and
+# rotation.
 #
-# Runs the product's published two-step deployment for Identity — SSO
-# (identity-sso 5.0.0) and, before that, provisions the SSO target Entra app
-# registration with the existing provisioning app (ENTRA_APP_ID).
+# This is NOT wired to any workflow. It is run only from a temporary, manually
+# dispatched workflow created for a reviewed maintenance task (first bootstrap,
+# recovery after an interrupted bootstrap, or a secret rotation), and that
+# workflow is removed once the task is verified. See docs/pdac/handoff.md
+# ("Rotation and recovery") for the procedure.
 #
-# Nothing here is permanent: it is removed once the bootstrap is verified (see
-# docs/pdac/handoff.md, docs/pdac/lessons-learned.md). The permanent,
+# It runs the product's published two-step deployment for Identity — SSO
+# (identity-sso) and, before that, provisions the SSO target Entra app
+# registration with the existing provisioning app (ENTRA_APP_ID). The permanent,
 # declarative workflow (.github/workflows/varde-flyt-deploy.yml) deploys the
 # committed manifest on every push and never touches Entra.
 #
