@@ -34,7 +34,10 @@ for r in $RESOURCES; do
   render_manifest "resources/${r}.yaml" "$f" true
   vfac validate -f "$f"
 
-  plan=$(plan_json "$f")
+  if ! plan=$(plan_json "$f" 2>/tmp/plan.err); then
+    cat /tmp/plan.err >&2
+    fail "${r}: the platform refused the plan. If the resource does not exist, its first creation is a bootstrap — run the bootstrap workflow; an ordinary push never creates it."
+  fi
   echo "$plan" | jq -c '{manifestKey, action, health, secretsToWrite, requiredSecrets}'
 
   action=$(require_action "$plan" false)
