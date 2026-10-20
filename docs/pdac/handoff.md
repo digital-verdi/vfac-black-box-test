@@ -8,9 +8,10 @@
   in Project `prj_01m4qqme1ve00a5e8swvf4dghc`, with SSO through a dedicated Entra
   app registration.
 - Deployed resource: `pri_01m5crw6b7e008b4jz1d67xbkk`, key `box-shared-sso-prod`,
-  Product `identity-sso`, status **ACTIVE**. Conditions: `directoryAccess`
-  **READY/FRESH**, `logForwarding` READY/FRESH, `signIn`
-  **ACTION_REQUIRED/FRESH** — no real interactive Entra sign-in has happened yet.
+  Product `identity-sso`, status **ACTIVE**. Conditions: `directoryAccess`,
+  `signIn` and `logForwarding` all **READY/FRESH**. `signIn` reached READY only
+  through a real interactive Entra login — confirm with the administrator who
+  performed it; `directoryAccess` is verified automatically.
 - Manifests and pipeline: `resources/identity-sso.yaml` (template),
   `.github/workflows/varde-flyt-deploy.yml` (permanent: push to `main` and
   dispatch), `.github/scripts/render-manifest.sh` (renders the template),
@@ -31,12 +32,11 @@
   ACTIVE, `secretsToWrite: []`; and a plan with no `--secret` against the live
   resource returns `NO_CHANGE`, so an ordinary push keeps the stored secrets and
   never rotates them.
-- Remains: a human administrator performs a real interactive Entra sign-in (then
-  `signIn` becomes READY/FRESH), after which the administration handover is
-  enabled.
-- Next safe action: have the first administrator sign in (console "Test
-  connection", or a real sign-in to a connected application), then re-read the
-  resource conditions. Do not re-run the Entra bootstrap.
+- Remains: the administration handover to the directory (a separate, deliberate
+  step in the Identity console), and user acceptance of the sign-in.
+- Next safe action: enable the directory handover if desired, then bind other
+  Products to this Identity resource (`signInMethod`/identity bindings per their
+  published deployment examples). Do not re-run the Entra bootstrap.
 
 ## Current objective
 
